@@ -122,4 +122,13 @@ print(f" No-Change baseline: {last_close:.2f}")
 for name, m in models.items():
     m.fit(labeled[feature_cols], labeled["target_ret"])
     ret = float(m.predict(latest[feature_cols])[0])
-    print(f" {name}:{last_close*(1+ret):.2f} ({ret*100:.1f}%)")
+    print(f" {name}:{last_close*(1+ret):>8.2f} ({ret*100:.1f}%)")
+
+pred_rows= data.tail(3).copy()                                                   # fill empty rows with prediction 
+m = models["Gradient boosting"]
+pred_rows["target_ret"] = m.predict(pred_rows[feature_cols])
+pred_rows["target_date"] = pred_rows.index + pd.offsets.BDay(horizon)
+print("\nPredicted 3-month return:")
+print(f"{'Date':<12}{'Close':>9}{'Return':>10} Target Date")
+for d,r in pred_rows.iterrows():
+    print(f"{d.date()!s:<12}{r['close']:>9.2f}{r['target_ret']*100:>+9.1f}% {r['target_date'].date()}")
