@@ -81,9 +81,6 @@ def build_dataset(bars,bench):                                                  
     return f.replace([np.inf,-np.inf],np.nan)
 
 data =build_dataset( nvda,spy)
-print(data.shape)
-print(data.tail(3).T)
-print("Rows w Target: ",data["target_ret"].notna().sum())
 
 feature_cols = [c for c in data.columns if c not in(                             #feature columns
     "close","target_ret","target_date")]
@@ -93,7 +90,6 @@ latest= data.iloc[[-1]]
 split = int(len(labeled)*(1-test_frac))                                          #time split
 train = labeled.iloc[:split-horizon]
 test = labeled.iloc[split:]
-print("train:", len(train),"| test:", len(test))
 
 x_tr,y_tr= train[feature_cols], train["target_ret"]                             #train 
 x_te,y_te= test[feature_cols], test["target_ret"]                               #test  
@@ -109,24 +105,41 @@ for name, m in models.items():
     m.fit(x_tr,y_tr)
     preds[name]=m.predict(x_te)
 
-print("\nMAE (pp,lower is better):")                                             #error check
-for name, p in preds.items():
-    print(f"{name}: {100* mean_absolute_error(y_te,p):.2f}")
+def show(title,df):                                                            #eports 
+    print(f"/n=== {title} ===")
+    print(df.to_string())
 
-last_close = float(data["close"].iloc[-1])                                       #month forecast
+def feat_table(df):
+    t=df[feature_cols+["close"]].copy()
+    t.index = t.index.strftime("%y-%m-%d")
+    return t.T.apply(lambda c: c.map("{:.4f}".format))
+
+overview =pd.DataFrame(                                                        #data Summary
+    {"value":[data.shape[0],data.shape[1], int(data["target_ret"].notna().sum()),len(train),len(test)]},
+    index= ["Total rows", "Columns","Rows w Target","Train rows","Test row"])
+show("Dataset",overview)
+
+show("Latest 3 days", feat_table(data.tail(3)))                                #latest feature
+
+mae= pd.DataFrame({"MAE (pp)":{n: round(100 * mean_absolute_error(y_te,p),2)   #error table
+                                for n,p in preds.items()}})
+
+last_close = float(data["close"].iloc[-1])                                      #3 month forecast
 last_date = data.index[-1]
-target_day = last_date +pd.offsets.BDay(horizon)
-print(f"\nLast close({last_date.date()}):{last_close:.2f}")
-print(f"Forecast for ~{target_day.date()}")
-print(f" No-Change baseline: {last_close:.2f}")
-for name, m in models.items():
-    m.fit(labeled[feature_cols], labeled["target_ret"])
+target_day = last_date + pd.offsets.BDay(horizon)
+forecasts = {"No-Change baseline": last_close}
+for name,m in models.items():
+    m.fit(labeled[feature_cols],labeled["target_ret"])
     ret = float(m.predict(latest[feature_cols])[0])
-    print(f" {name}:{last_close*(1+ret):>8.2f} ({ret*100:.1f}%)")
+    forecasts[name] = last_close * (1+ret)
+fc = pd.DataFrame({"Price ($)": forecasts})
+fc["change (%)"]=(fc["Price ($)"] / last_close -1)*100
+show(f"Forecast for ~{target_day.date()} (last close {last_close:.2f})" , fc.round(2))
 
-pred_rows= data.tail(3).copy()                                                   # fill empty rows with prediction 
-m = models["Gradient boosting"]
-pred_rows["target_ret"] = m.predict(pred_rows[feature_cols])
+pred_rows= data.tail(3).copy()
+pred_rows["target_ret"] = models["Gradient boosting"].predict(pred_rows[feature_cols])
 pred_rows["target_date"] = pred_rows.index + pd.offsets.BDay(horizon)
-print("\nPredicted 3-month return:")
-print(pred_rows.T)
+tbl= feat_table(pred_rows)
+tbl.loc["pred_return"] = [f"{x*100:+.1f}%" for x in pred_rows["target_ret"]]
+tbl.loc["target_date"] = pred_rows["target_date"].dt.strftime("%Y-%m-%d").tolist()
+show("Predicted 3-Month return (Gradient boosting)", tbl)
