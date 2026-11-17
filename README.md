@@ -5,7 +5,9 @@
 *A machine-learning experiment for estimating NVDA's approximately three-month return.*
 
 [![Python](https://img.shields.io/badge/Python-3-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/github/license/ShreyanshFS/NvidiaStockPredict)](LICENSE)
+[![Last commit](https://img.shields.io/github/last-commit/ShreyanshFS/NvidiaStockPredict)](https://github.com/ShreyanshFS/NvidiaStockPredict/commits/main)
+[![Repository size](https://img.shields.io/github/repo-size/ShreyanshFS/NvidiaStockPredict)](https://github.com/ShreyanshFS/NvidiaStockPredict)
 
 </div>
 
