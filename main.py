@@ -14,6 +14,7 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.base import clone
+import matplotlib.pyplot as plt
 
 root=Path(__file__).resolve().parent
 out= root/"outputs"
@@ -136,10 +137,41 @@ fc = pd.DataFrame({"Price ($)": forecasts})
 fc["change (%)"]=(fc["Price ($)"] / last_close -1)*100
 show(f"Forecast for ~{target_day.date()} (last close {last_close:.2f})" , fc.round(2))
 
-pred_rows= data.tail(3).copy()
+pred_rows= data.tail(3).copy()                                                   #predicted rows
 pred_rows["target_ret"] = models["Gradient boosting"].predict(pred_rows[feature_cols])
 pred_rows["target_date"] = pred_rows.index + pd.offsets.BDay(horizon)
 tbl= feat_table(pred_rows)
 tbl.loc["pred_return"] = [f"{x*100:+.1f}%" for x in pred_rows["target_ret"]]
 tbl.loc["target_date"] = pred_rows["target_date"].dt.strftime("%Y-%m-%d").tolist()
 show("Predicted 3-Month return (Gradient boosting)", tbl)
+
+choice = input ("\nShow Charts?(y/n): ").strip().lower()                            #ask for chart
+if choice == 'y':
+    colors = ["tab:green","tab:blue","tab:orange"]
+    fig = plt.figure(figsize=(14,8))
+    ax1 = fig.add_subplot(2,1,1)
+    ax2 = fig.add_subplot(2,2,3)
+    ax3 = fig.add_subplot(2,2,4)
+
+    dates = pd.to_datetime(test["target_date"])                                     #chart 1 : actual vs predicted
+    ax1.plot(dates,test["close"]*(1+y_te),"k",lw=2,label="Actual")
+    for name , p in preds.items():
+        ax1.plot(dates,test["close"]*(1+p),lw=1.2,alpha=0.85,label =name)
+    ax1.set_title("Predicted v/s actual price by date")
+    ax1.set_ylabel("Price ($)")
+    ax1.legend()
+    ax1.grid(alpha=.3)
+
+    bars=ax2.barh(mae.index,mae["MAE (pp)"], color = colors)                         #chart 2: error
+    ax2.bar_label(bars, fmt="%.2f",padding=3)
+    ax2.set_title("Avg error (pp), lower is better")
+    ax2.invert_yaxis()
+
+    bars=ax3.bar(fc.index,fc["Price ($)"],color=colors)                              #Chart 3: 3 Month Prediction
+    ax3.bar_label(bars,fmt="%.2f",padding=3)
+    ax3.axhline(last_close,color="grey",ls="--",lw=1)
+    ax3.set_title("3-month price forecast")
+    ax3.tick_params(axis="x",labelrotation=15)
+
+    fig.tight_layout()
+    plt.show()
