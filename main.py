@@ -1,4 +1,5 @@
-import os 
+import json
+import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import numpy as np
@@ -106,7 +107,7 @@ for name, m in models.items():
     m.fit(x_tr,y_tr)
     preds[name]=m.predict(x_te)
 
-def show(title,df):                                                            #eports 
+def show(title,df):                                                            #reports 
     print(f"/n=== {title} ===")
     print(df.to_string())
 
@@ -144,6 +145,10 @@ tbl= feat_table(pred_rows)
 tbl.loc["pred_return"] = [f"{x*100:+.1f}%" for x in pred_rows["target_ret"]]
 tbl.loc["target_date"] = pred_rows["target_date"].dt.strftime("%Y-%m-%d").tolist()
 show("Predicted 3-Month return (Gradient boosting)", tbl)
+
+report={
+    
+}
 
 choice = input ("\nShow Charts?(y/n): ").strip().lower()                            #ask for chart
 if choice == 'y':
