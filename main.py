@@ -146,9 +146,15 @@ tbl.loc["pred_return"] = [f"{x*100:+.1f}%" for x in pred_rows["target_ret"]]
 tbl.loc["target_date"] = pred_rows["target_date"].dt.strftime("%Y-%m-%d").tolist()
 show("Predicted 3-Month return (Gradient boosting)", tbl)
 
-report={
-    
+report={                                                                            #saved Report
+    "last_close": round(last_close,2),
+    "forecast_date":str(target_day.date()),
+    "mae_pp":mae["MAE (pp)"].to_dict(),
+    "forecast_price": fc["Price ($)"].round(2).to_dict(),
 }
+with open(out/"report.json","w") as f:
+    json.dump(report,f,indent=2)
+print("\nSaved",out/"report.json")
 
 choice = input ("\nShow Charts?(y/n): ").strip().lower()                            #ask for chart
 if choice == 'y':
